@@ -1,0 +1,39 @@
+Sources:
+http://rstudio-pubs-static.s3.amazonaws.com/151199_c31c3aa978614a889f938f993065450b.html
+https://rstudio-pubs-static.s3.amazonaws.com/70202_c0880a3c963841d2a945087622e98d4c.html
+https://link.springer.com/content/pdf/10.3758/s13428-016-0766-5.pdf
+https://github.com/jasonkdavis/r-cmscu
+https://rpubs.com/BreaizhZut/MilesStone_NgramPrediction
+
+
+1. Precursors
+
+No stemming
+yes to ignoring capital letters in the beginning of the sentences, but keep them elsewhere.
+- remove numbers on their own - but keep the ones which are together in words
+- remove punctuation
+- remove separators
+- remove twitter handles
+- profanity filtering - maybe a dataset with curse words
+- contractions - don't, haven't and so on - homogenize using _ 
+- profanity - curses and words coming from them 
+- clean up the emoticons
+- strip extra white space
+- remove stopwords
+
+2. Models 
+
+- Markov models
+- Basic Idea of the Algorithm used:
+
+- Take the input and use the same text transformations as for the training data and return last two words. Search for two first input words in the 3-grams training data and if matched, predict the third word. If no match, then next step.
+Search with only the last input word in the first word of 2-grams training data. If matched, predict the second word. If no match, then next step.
+Predict the most common words in the 1-gram data.
+
+library(quanteda)
+library(RWeka)
+library(NLP)
+
+
+
+
