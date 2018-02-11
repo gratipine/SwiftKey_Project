@@ -2,22 +2,10 @@ library(data.table)
 library(dplyr)
 library(tokenizers)
 
+options(scipen = 999)
+
 # Tokenizers ---------------------------------------------------------------------------------------
-todo <- readLines("Data/Coursera-SwiftKey/final/en_US/en_US.blogs.txt")
-
-dt_table <- data.table(todo)
-
-strsplit(as.character(head(todo)), " ")
-mine <- paste(todo, sep = "", collapse = "")
-words <- unlist(tokenize_words(mine))
-length(words)
-tab <- table(words)
-tab <- data_frame(word = names(tab), count = as.numeric(tab))
-tab <- data.table(tab)
-
-tab[, Frequency := count / sum(count),]
- workable <- tab %>% 
-   filter(Frequency > 0.001)
+todo <- readLines("Data/en_US/en_US.blogs.txt")
 
  # Wordcloud-----------------------------------
  
