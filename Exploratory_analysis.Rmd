@@ -1,0 +1,137 @@
+# Exploratory analysis of text data
+
+###Necessary libraries
+```{r}
+suppressWarnings(suppressPackageStartupMessages(library(data.table)))
+suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
+suppressWarnings(suppressPackageStartupMessages(library(tokenizers)))
+sapply(list.files("R/", full.names = TRUE), source)
+options(scipen = 999)
+```
+
+### Read in the Data
+```{r}
+suppressWarnings(
+blogs <- readLines("Data/en_US/en_US.blogs.txt"))
+suppressWarnings(
+tweets <- readLines("Data/en_US/en_US.twitter.txt"))
+suppressWarnings(
+news <- readLines("Data/en_US/en_US.news.txt"))
+```
+
+###Exploration
+The assignment gives three data sets - texts from Twitter, blogs and news articles, with the following number of lines in each one:
+```{r, echo = FALSE}
+# Number of lines
+# Blogs
+b_count <- length(blogs)
+# Tweets
+t_count <- length(tweets)
+# News
+n_count <- length(news)
+```
+
+- blogs - `r b_count`
+
+- tweets - `r t_count`
+
+- news - `r n_count`
+
+As we can see, the tweets file has the most lines in it, which makes sense - each individual tweet is rather small.
+```{r}
+# To words
+dt_blogs <- dt_characterVectorToTable(blogs)
+dt_tweets <- dt_characterVectorToTable(tweets)
+dt_news <- dt_characterVectorToTable(news)
+dt_all <- rbind(dt_blogs, dt_news, dt_tweets)
+
+# Freqiencies 
+dt_blogs_freq <- dt_calculateWordFrequencies(dt_blogs, "words")
+dt_tweets_freq <- dt_calculateWordFrequencies(dt_tweets, "words")
+dt_news_freq <- dt_calculateWordFrequencies(dt_news, "words")
+dt_all_freq <- dt_calculateWordFrequencies(dt_all, "words")
+
+```
+The number of individual words in each source vs. the total number of words in that source gives a look into the complexity of the language used by the different writers.
+
+- blogs - `r nrow(dt_blogs_freq)` / `r nrow(dt_blogs)` = `r nrow(dt_blogs_freq) / nrow(dt_blogs)`
+
+- tweets - `r nrow(dt_tweets_freq)` / `r nrow(dt_tweets)` = `r nrow(dt_tweets_freq) / nrow(dt_tweets)`
+
+- news - `r nrow(dt_news_freq)` / `r nrow(dt_news)` = `r nrow(dt_news_freq) / nrow(dt_news)`
+
+Here I got a small surprise. While I expected news to have the highest complexity, I also expected blogs to be second. However, further consideration led me to the realization that tweets are written by a higher number of different people. They are also on various topics which might not necessarily make it into a blogs post. Additionally, the 140-character constraint limits the amount of connecting words people are using, which can lead to higher complexity as estimated here. However, the fact that the complexity of blogs is so much smaller is an interesting topic to research further.
+
+The plots below show two looks at the word distributions in the text. From the left plot we see that most words have a very low frequency. The right one shows that a small percentage of words have high frequencies
+```{r}
+par(mfrow = c(1,2))
+hist(dt_all_freq$Frequency, breaks = 100000, xlim = c(0.00005,0.0000000001), ylim = c(0,10000),
+     ylab = "Number of words for given frequency", xlab = "Frequency", main ="")
+hist(dt_all_freq$Frequency, breaks = 10000, xlim = c(0.00005,0.000001), ylim = c(0,1000), 
+     ylab = "Number of words for given frequency", xlab = "Frequency", main = "")
+```
+
+There is nothing like a little text analysis to make you realize the importance of connecting words. The top 10 words, of which 8 are connectors and 2 are pronouns, describe ~20% of the text.  
+```{r}
+#plot the frequency for the top ten words 
+plot(as.factor(head(dt_all_freq$dt, 10)), as.numeric(head(dt_all_freq$Frequency,10)), type = "p", 
+     main = "The most frequent words in the three texts and their frequencies")
+```
+
+Further exploration shows that the top `r nrow(dt_all_freq) - nrow(dt_all_freq[PercentageTextDescribed >= 0.9,])` words can be used to describe 90% of the text. With  `r nrow(dt_all_freq) - nrow(dt_all_freq[PercentageTextDescribed >= 0.95,])` words we can descibe 95% of the texts. This means that the eventual dictionary that we compile to create typing predictions does not necessarily need to be huge.
+
+### Development of the Text Predictor
+
+The algorithm used will be a basic n-gram model. From the texts given I will compile n-gram chains of length 2 (one predictor and one predicted word), 3 (two predictors) and 4 (three predictors). Those will be the potential dictionaries, the effect of which will be seen in the Shiny app. 
+
+### The App
+
+The app will offer the user to choose between the 2-, 3- and 4-word dictionaries and test them out by writing/pasting test in a textbox and having the app suggest the next word. My expectation is that using the 4-word dictionary will be the most satisfying experience, since there is more variation there coupled with smalled frequency of each combination. 
+
+### Potential Issues
+Since the app process will involve searching through big lists, I might have to look for a very efficient method to do that quickly enough as to not inconvenience the user. So far in my explorations grepl with perl = TRUE seems to do wonders for speed, but neither the scale was as big, nor the speed constrains were as strict as they will be here.
+
+Additionally, I have yet to start removing profanity from the data sets. Human ingenuity in that area is rather spectacular, so it will probably be impossible to remove everything that can be considered inappropriate. My plans for this are to remove the seven dirty words first defined by George Carlin after taking care of possible misspelling of said words.
+
+### Appendix A
+####Source code dt_calculateWordFrequencies
+```{r, eval= FALSE, echo = TRUE}
+dt_calculateWordFrequencies <- function(dt, column_to_calculate) {
+  
+  # Calculate the counts of words
+  counted <- data.table(table(dt))
+  # Calculate the frequences of each word
+  counted[, Frequency := N / sum(N),]
+  
+  # Sort by maximum frequency
+  counted <- counted[order(-Frequency),,]
+  
+  # calculate the cummulative sum of the frequency to be able to say how many words
+  # it takes to be at 90% description of the text or 95% description of text
+  # Do not remove filler words like "and" and "the"
+  counted[,PercentageTextDescribed := cumsum(Frequency),]
+  
+  # Return the computed data table
+  return(counted)
+}
+
+```
+
+####Source code dt_characterVectorToTable
+```{r, eval = FALSE, echo = TRUE}
+dt_characterVectorToTable <- function(character_vector) {
+  # Transform a character vector of lines into a character vector of words
+  mine <- paste(character_vector, sep = "", collapse = "")
+  words <- unlist(tokenize_words(mine))
+  
+  # Clean up unnecessary characters
+  to_nothing <- c("_", "\\.")
+  words <- gsub(paste(to_nothing, collapse = "|"), "", words, perl = TRUE)
+  words <- words %>%
+    data.table()
+  names(words) <- "words"
+  
+  # Return the resulting data table
+  return(words)
+}
+```
