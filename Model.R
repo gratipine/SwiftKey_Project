@@ -1,7 +1,7 @@
 # Model
 
 # The data comes from :
-# https://rstudio-pubs-static.s3.amazonaws.com/265713_cbef910aee7642dc8b62996e38d2825d.html
+# https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip
 
 # What the model is:
 # compiled n-grams from the three data sources we received. 
@@ -24,6 +24,7 @@ suppressWarnings(
   tweets <- readLines("Data/en_US/en_US.twitter.txt"))
 suppressWarnings(
   news <- readLines("Data/en_US/en_US.news.txt"))
+saveRDS("blogs.RDS"
 all_character <- c(blogs, tweets, news)
 # To words
 dt_blogs <- dt_characterVectorToTable(blogs)
