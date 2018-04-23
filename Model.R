@@ -17,14 +17,21 @@ library(tidytext)
 sapply(list.files("R/", full.names = TRUE), source)
 options(scipen = 999)
 
-# Data read in
-suppressWarnings(
-  blogs <- readLines("Data/en_US/en_US.blogs.txt"))
-suppressWarnings(
-  tweets <- readLines("Data/en_US/en_US.twitter.txt"))
-suppressWarnings(
-  news <- readLines("Data/en_US/en_US.news.txt"))
-saveRDS("blogs.RDS"
+# Data prep and read in
+# suppressWarnings(
+#   blogs <- readLines("Data/en_US/en_US.blogs.txt"))
+# suppressWarnings(
+#   tweets <- readLines("Data/en_US/en_US.twitter.txt"))
+# suppressWarnings(
+#   news <- readLines("Data/en_US/en_US.news.txt"))
+# saveRDS(blogs, file = "blogs.RDS")
+# saveRDS(tweets, file = "tweets.RDS")
+# saveRDS(news, file = "news.RDS")
+
+blogs <- readRDS("blogs.RDS")
+tweets <- readRDS("tweets.RDS")
+news <- readRDS("news.RDS")
+
 all_character <- c(blogs, tweets, news)
 # To words
 dt_blogs <- dt_characterVectorToTable(blogs)
