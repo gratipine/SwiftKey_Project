@@ -13,24 +13,25 @@
 suppressWarnings(suppressPackageStartupMessages(library(data.table)))
 suppressWarnings(suppressPackageStartupMessages(library(dplyr)))
 suppressWarnings(suppressPackageStartupMessages(library(tokenizers)))
+library(magrittr)
 library(tidytext)
 sapply(list.files("R/", full.names = TRUE), source)
 options(scipen = 999)
 
 # Data prep and read in
-# suppressWarnings(
-#   blogs <- readLines("Data/en_US/en_US.blogs.txt"))
-# suppressWarnings(
-#   tweets <- readLines("Data/en_US/en_US.twitter.txt"))
-# suppressWarnings(
-#   news <- readLines("Data/en_US/en_US.news.txt"))
-# saveRDS(blogs, file = "blogs.RDS")
-# saveRDS(tweets, file = "tweets.RDS")
-# saveRDS(news, file = "news.RDS")
+suppressWarnings(
+  blogs <- readLines("Data/en_US/en_US.blogs.txt"))
+suppressWarnings(
+  tweets <- readLines("Data/en_US/en_US.twitter.txt"))
+suppressWarnings(
+  news <- readLines("Data/en_US/en_US.news.txt"))
+saveRDS(blogs, file = "blogs.rds")
+saveRDS(tweets, file = "tweets.rds")
+saveRDS(news, file = "news.rds")
 
-blogs <- readRDS("blogs.RDS")
-tweets <- readRDS("tweets.RDS")
-news <- readRDS("news.RDS")
+blogs <- readRDS("blogs.rds")
+tweets <- readRDS("tweets.rds")
+news <- readRDS("news.rds")
 
 all_character <- c(blogs, tweets, news)
 # To words
@@ -51,4 +52,15 @@ keepers <- dt_all_freq[PercentageTextDescribed < 95]
 a <- lapply(all_character[1:2000], FUN = ngrams_bigramExtractor)
 b <- unlist(a)
 
-# 9485 -> 81417
+
+# n-gram of order 3
+a <- lapply(all_character[1:2000], FUN = ngrams_trigramExtractor)
+b <- unlist(a)
+
+microbenchmark::microbenchmark(times = 100L, ngrams_trigramExtractor(all_character[1]))
+# 2000 -> 79436
+# https://cran.r-project.org/web/packages/text2vec/vignettes/text-vectorization.html
+it_train <- text2vec::itoken(all_character[1:20],
+                             tokenizer = word_tokenizer,
+                             progressbar = FALSE)
+vocab <- create_vocabulary(it_train)
